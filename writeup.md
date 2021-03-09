@@ -318,6 +318,17 @@ my_sockets[0].send(b_sticker(curr_thread_id, 2379544618736942))
 my_sockets[0].send(b_text(curr_thread_id, 'hello world'))
 ```
 
+here is a video demo running the code
+
+```javascript
+new Array(25).fill(0).forEach((_, i) => my_sockets[0].send(b_text(curr_thread_id, `number ${i+1}`)))
+```
+which sends `'number 1'`, `'number 2'`, `'number 3'`, ...
+
+<video controls src=demo.mp4></video>
+
+note that they send out of order because they just throw them all down the hole instead of sending 1, waiting for it to be acknowledged/show up in chat, sending 2, waiting, sending 3, etc.
+
 ## further
 oh cool now we know general process of finding out what goes on in websocket to send info. so we could send potentially anything else you can manually send!!!
 

@@ -310,6 +310,12 @@ my_sockets[<span class="dv">0</span>].<span class="at">send</span>(<span class="
 
 <span class="co">// sends &#39;hello world&#39; to current thread</span>
 my_sockets[<span class="dv">0</span>].<span class="at">send</span>(<span class="at">b_text</span>(curr_thread_id<span class="op">,</span> <span class="st">&#39;hello world&#39;</span>))</code></pre></div>
+<p>here is a video demo running the code</p>
+<div class="sourceCode"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span class="kw">new</span> <span class="at">Array</span>(<span class="dv">25</span>).<span class="at">fill</span>(<span class="dv">0</span>).<span class="at">forEach</span>((_<span class="op">,</span> i) <span class="op">=&gt;</span> my_sockets[<span class="dv">0</span>].<span class="at">send</span>(<span class="at">b_text</span>(curr_thread_id<span class="op">,</span> <span class="vs">`number </span><span class="sc">${</span>i<span class="op">+</span><span class="dv">1</span><span class="sc">}</span><span class="vs">`</span>)))</code></pre></div>
+<p>which sends <code>'number 1'</code>, <code>'number 2'</code>, <code>'number 3'</code>, ...</p>
+<video controls src="demo.mp4">
+</video>
+<p>note that they send out of order because they just throw them all down the hole instead of sending 1, waiting for it to be acknowledged/show up in chat, sending 2, waiting, sending 3, etc.</p>
 <h2 id="further">further</h2>
 <p>oh cool now we know general process of finding out what goes on in websocket to send info. so we could send potentially anything else you can manually send!!!</p>
 <p>we could also probably listen to the websocket and like respond to messages or something cool!</p>
