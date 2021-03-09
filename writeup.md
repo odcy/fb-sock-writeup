@@ -1,4 +1,7 @@
 <style>
+html { display: flex; justify-content: center }
+table { width: 100% }
+td, th { border: inset; padding: 0.2em }
 body { width: 32em }
 pre, code { background-color: #eee }
 pre { overflow: scroll; padding: 1em }
