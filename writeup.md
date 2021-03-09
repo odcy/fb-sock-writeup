@@ -299,7 +299,7 @@ in conclusion, we saw that it is possible to get access to socket that facebook 
 
 ## my code
 
-[here is my code](./writeup-demo.js) it is script to be injected before `https://www.facebook.com/messages/*` loads.
+[here is my code](./writeup-demo.js) ([view on github](https://github.com/odcy/fb-sock-writeup/blob/main/writeup-demo.js)) it is script to be injected before `https://www.facebook.com/messages/*` loads.
 
 there are just a few extra things it includes that i did not discuss
 
