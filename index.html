@@ -1,0 +1,315 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="generator" content="pandoc" />
+  <title></title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <style type="text/css">
+div.sourceCode { overflow-x: auto; }
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code > span.dt { color: #902000; } /* DataType */
+code > span.dv { color: #40a070; } /* DecVal */
+code > span.bn { color: #40a070; } /* BaseN */
+code > span.fl { color: #40a070; } /* Float */
+code > span.ch { color: #4070a0; } /* Char */
+code > span.st { color: #4070a0; } /* String */
+code > span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code > span.ot { color: #007020; } /* Other */
+code > span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code > span.fu { color: #06287e; } /* Function */
+code > span.er { color: #ff0000; font-weight: bold; } /* Error */
+code > span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+code > span.cn { color: #880000; } /* Constant */
+code > span.sc { color: #4070a0; } /* SpecialChar */
+code > span.vs { color: #4070a0; } /* VerbatimString */
+code > span.ss { color: #bb6688; } /* SpecialString */
+code > span.im { } /* Import */
+code > span.va { color: #19177c; } /* Variable */
+code > span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code > span.op { color: #666666; } /* Operator */
+code > span.bu { } /* BuiltIn */
+code > span.ex { } /* Extension */
+code > span.pp { color: #bc7a00; } /* Preprocessor */
+code > span.at { color: #7d9029; } /* Attribute */
+code > span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code > span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code > span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+  </style>
+</head>
+<body>
+<style>
+body { width: 32em }
+pre, code { background-color: #eee }
+pre { overflow: scroll; padding: 1em }
+img, video { width: 100% }
+</style>
+<h1 id="experiment-inject-facebook-messenger-to-steal-its-websocket">experiment: inject facebook messenger to steal its WebSocket</h1>
+<p>facebook stickers are slow to open and send, especially on web version.</p>
+<p>so i wondered how i could tinker with web version to allow programmatic control of sending stickers, instead of having to manually click stuff.</p>
+<h2 id="first-thoughts-maybe-its-just-html-request">first thoughts: maybe its just html request</h2>
+<p>often a web app handles something like sending a sticker with a HTML POST request or something</p>
+<p>and then we can just imitate the kind of requests that the web app makes in order to achieve same thing</p>
+<p>html requests are used for a ton of other stuff also so i am used to them so i hoped that facebook messenger would send a sticker with this common method. oh, but they did not. when you click to send a sticker, it does not make a HTML request.</p>
+<p>they actually use newer technology called 'WebSocket'</p>
+<p>do you know what a socket is? I personally struggled with concept for a long time because i never actually did much work with them. a socket is basically like a hole you can shove stuff down to send it to server, and stuff magically falls out which is from server.</p>
+<p>a socket is often used with things like a messaging, because things can fall out of the hole as they please. so if you are messaging someone, their messages come instantly. if you try to make a messaging with HTML requests, you would have to constantly request server: 'did i get any new message yet?'</p>
+<p>I am not quite comfortable with socket, WebSocket. so i will think maybe i can send without socket?</p>
+<h2 id="second-thoughts-maybe-programmatically-click-on-buttons-to-send-stickers">second thoughts: maybe programmatically click on buttons to send stickers</h2>
+<p>in javascript, DOM elements have <code>.click()</code> method you can call and it clicks them.</p>
+<p>so maybe i could select the sticker button and click it..</p>
+<p>well it turns out that this is not possible because you have to click the sticker menu FIRST, then click a sticker button within the menu.</p>
+<p>and the menu isn't just hidden or something, it is actually removed from dom when it is not active</p>
+<video controls src="sticker-menu.mp4">
+</video>
+<p>so to programmatically click sticker button, i would have to somehow programatically 1. click sticker menu 2. somehow know when sticker menu opened 3. navigate horrible menu selection to correct page 4. finally click the sticker button</p>
+<p>it is just big headache. so i guess i will just have to conquer sockets..</p>
+<h2 id="websocket">WebSocket</h2>
+<p>well socket it is..</p>
+<p>chrome dev tools have a tool for viewing a websocket</p>
+<video controls src="first-look-websocket.mp4">
+</video>
+<p>to the right is the tool; it shows whats going on with ur socket..</p>
+<p>things that came from server in white, things that you send to server in green..</p>
+<p>as you can see, there is a ton of stuff.. and it goes flying when you send sticker!!</p>
+<p>well we need to understand what is sending in order to also send sticker..</p>
+<p>as you can see, they all say 'binary message'. this means that it is just any arbitrary data being sent, not particularly ascii/utf-8 encoded text!!</p>
+<p>the chrome tool decides to display the 'binary message' in base64 format, which imo not very convenient.. so i constantly used base64 to either ascii or hexadecimal convertor for viewing..</p>
+<p>well we want to see what facebook messenger is tossing down the hole that corresponds to sending a sticker.. so i lets look at some of what its sending..</p>
+<p>here is a 2B (2-byte) binary data..</p>
+<pre><code>base64: wAA=
+hex: c0 00
+ascii: À</code></pre>
+<p>well it is probably not what we are looking for.. it is probably just some reoccuring protocol message..</p>
+<p>heres a 167B one..</p>
+<pre><code>base64: MKQBAAcvbHNfcmVxeyJyZXF1ZXN0X2lkIjo3MiwidHlwZSI6NCwicGF5bG9hZCI6IntcImxhYmVsXCI6XCIxXCIsXCJwYXlsb2FkXCI6XCJ7XFxcImFwcF9zdGF0ZVxcXCI6MH1cIixcInZlcnNpb25cIjpcIjQxNDg1NzcyNDUyNjQ0ODFcIn0iLCJhcHBfaWQiOiIyMjIwMzkxNzg4MjAwODkyIn0=
+hex: 30 a4 01 00 07 2f 6c 73 5f 72 65 71 7b 22 72 65 71 75 65 73 74 5f 69 64 22 3a 37 32 2c 22 74 79 70 65 22 3a 34 2c 22 70 61 79 6c 6f 61 64 22 3a 22 7b 5c 22 6c 61 62 65 6c 5c 22 3a 5c 22 31 5c 22 2c 5c 22 70 61 79 6c 6f 61 64 5c 22 3a 5c 22 7b 5c 5c 5c 22 61 70 70 5f 73 74 61 74 65 5c 5c 5c 22 3a 30 7d 5c 22 2c 5c 22 76 65 72 73 69 6f 6e 5c 22 3a 5c 22 34 31 34 38 35 37 37 32 34 35 32 36 34 34 38 31 5c 22 7d 22 2c 22 61 70 70 5f 69 64 22 3a 22 32 32 32 30 33 39 31 37 38 38 32 30 30 38 39 32 22 7d
+ascii: 0¤/ls_req{&quot;request_id&quot;:72,&quot;type&quot;:4,&quot;payload&quot;:&quot;{\&quot;label\&quot;:\&quot;1\&quot;,\&quot;payload\&quot;:\&quot;{\\\&quot;app_state\\\&quot;:0}\&quot;,\&quot;version\&quot;:\&quot;4148577245264481\&quot;}&quot;,&quot;app_id&quot;:&quot;2220391788200892&quot;}</code></pre>
+<p>oh hmm.. well based on ascii it is some kind of json message.. but it doesnt seem to have to do with stickers.. lets look more..</p>
+<p>heres a 627B one..</p>
+<pre><code>base64: MvoEAAcvbHNfcmVxAKl7InJlcXVlc3RfaWQiOjcxLCJ0eXBlIjozLCJwYXlsb2FkIjoie1widmVyc2lvbl9pZFwiOlwiNDE0ODU3NzI0NTI2NDQ4MVwiLFwidGFza3NcIjpbe1wibGFiZWxcIjpcIjQ2XCIsXCJwYXlsb2FkXCI6XCJ7XFxcInRocmVhZF9pZFxcXCI6MTAwMDU5OTE0MDkxMjg0LFxcXCJvdGlkXFxcIjpcXFwiNjc3NDU3NDE0MDY5OTg5NjA2MVxcXCIsXFxcInNvdXJjZVxcXCI6NjU1MzcsXFxcInNlbmRfdHlwZVxcXCI6MixcXFwic3RpY2tlcl9pZFxcXCI6MTkyNjIzNzE5NzQxNTI3NH1cIixcInF1ZXVlX25hbWVcIjpcIjEwMDA1OTkxNDA5MTI4NFwiLFwidGFza19pZFwiOjc3LFwiZmFpbHVyZV9jb3VudFwiOm51bGx9LHtcImxhYmVsXCI6XCIyMVwiLFwicGF5bG9hZFwiOlwie1xcXCJ0aHJlYWRfaWRcXFwiOjEwMDA1OTkxNDA5MTI4NCxcXFwibGFzdF9yZWFkX3dhdGVybWFya190c1xcXCI6MTYxNTE4NDM0MDY0M31cIixcInF1ZXVlX25hbWVcIjpcIjEwMDA1OTkxNDA5MTI4NFwiLFwidGFza19pZFwiOjc4LFwiZmFpbHVyZV9jb3VudFwiOm51bGx9XSxcImVwb2NoX2lkXCI6Njc3NDU3NDE0MDkxNDE5MDU2NixcImRhdGFfdHJhY2VfaWRcIjpudWxsfSIsImFwcF9pZCI6IjIyMjAzOTE3ODgyMDA4OTIifQ==
+hex: 32 fa 04 00 07 2f 6c 73 5f 72 65 71 00 a9 7b 22 72 65 71 75 65 73 74 5f 69 64 22 3a 37 31 2c 22 74 79 70 65 22 3a 33 2c 22 70 61 79 6c 6f 61 64 22 3a 22 7b 5c 22 76 65 72 73 69 6f 6e 5f 69 64 5c 22 3a 5c 22 34 31 34 38 35 37 37 32 34 35 32 36 34 34 38 31 5c 22 2c 5c 22 74 61 73 6b 73 5c 22 3a 5b 7b 5c 22 6c 61 62 65 6c 5c 22 3a 5c 22 34 36 5c 22 2c 5c 22 70 61 79 6c 6f 61 64 5c 22 3a 5c 22 7b 5c 5c 5c 22 74 68 72 65 61 64 5f 69 64 5c 5c 5c 22 3a 31 30 30 30 35 39 39 31 34 30 39 31 32 38 34 2c 5c 5c 5c 22 6f 74 69 64 5c 5c 5c 22 3a 5c 5c 5c 22 36 37 37 34 35 37 34 31 34 30 36 39 39 38 39 36 30 36 31 5c 5c 5c 22 2c 5c 5c 5c 22 73 6f 75 72 63 65 5c 5c 5c 22 3a 36 35 35 33 37 2c 5c 5c 5c 22 73 65 6e 64 5f 74 79 70 65 5c 5c 5c 22 3a 32 2c 5c 5c 5c 22 73 74 69 63 6b 65 72 5f 69 64 5c 5c 5c 22 3a 31 39 32 36 32 33 37 31 39 37 34 31 35 32 37 34 7d 5c 22 2c 5c 22 71 75 65 75 65 5f 6e 61 6d 65 5c 22 3a 5c 22 31 30 30 30 35 39 39 31 34 30 39 31 32 38 34 5c 22 2c 5c 22 74 61 73 6b 5f 69 64 5c 22 3a 37 37 2c 5c 22 66 61 69 6c 75 72 65 5f 63 6f 75 6e 74 5c 22 3a 6e 75 6c 6c 7d 2c 7b 5c 22 6c 61 62 65 6c 5c 22 3a 5c 22 32 31 5c 22 2c 5c 22 70 61 79 6c 6f 61 64 5c 22 3a 5c 22 7b 5c 5c 5c 22 74 68 72 65 61 64 5f 69 64 5c 5c 5c 22 3a 31 30 30 30 35 39 39 31 34 30 39 31 32 38 34 2c 5c 5c 5c 22 6c 61 73 74 5f 72 65 61 64 5f 77 61 74 65 72 6d 61 72 6b 5f 74 73 5c 5c 5c 22 3a 31 36 31 35 31 38 34 33 34 30 36 34 33 7d 5c 22 2c 5c 22 71 75 65 75 65 5f 6e 61 6d 65 5c 22 3a 5c 22 31 30 30 30 35 39 39 31 34 30 39 31 32 38 34 5c 22 2c 5c 22 74 61 73 6b 5f 69 64 5c 22 3a 37 38 2c 5c 22 66 61 69 6c 75 72 65 5f 63 6f 75 6e 74 5c 22 3a 6e 75 6c 6c 7d 5d 2c 5c 22 65 70 6f 63 68 5f 69 64 5c 22 3a 36 37 37 34 35 37 34 31 34 30 39 31 34 31 39 30 35 36 36 2c 5c 22 64 61 74 61 5f 74 72 61 63 65 5f 69 64 5c 22 3a 6e 75 6c 6c 7d 22 2c 22 61 70 70 5f 69 64 22 3a 22 32 32 32 30 33 39 31 37 38 38 32 30 30 38 39 32 22 7d
+ascii: 2ú/ls_req©{&quot;request_id&quot;:71,&quot;type&quot;:3,&quot;payload&quot;:&quot;{\&quot;version_id\&quot;:\&quot;4148577245264481\&quot;,\&quot;tasks\&quot;:[{\&quot;label\&quot;:\&quot;46\&quot;,\&quot;payload\&quot;:\&quot;{\\\&quot;thread_id\\\&quot;:100059914091284,\\\&quot;otid\\\&quot;:\\\&quot;6774574140699896061\\\&quot;,\\\&quot;source\\\&quot;:65537,\\\&quot;send_type\\\&quot;:2,\\\&quot;sticker_id\\\&quot;:1926237197415274}\&quot;,\&quot;queue_name\&quot;:\&quot;100059914091284\&quot;,\&quot;task_id\&quot;:77,\&quot;failure_count\&quot;:null},{\&quot;label\&quot;:\&quot;21\&quot;,\&quot;payload\&quot;:\&quot;{\\\&quot;thread_id\\\&quot;:100059914091284,\\\&quot;last_read_watermark_ts\\\&quot;:1615184340643}\&quot;,\&quot;queue_name\&quot;:\&quot;100059914091284\&quot;,\&quot;task_id\&quot;:78,\&quot;failure_count\&quot;:null}],\&quot;epoch_id\&quot;:6774574140914190566,\&quot;data_trace_id\&quot;:null}&quot;,&quot;app_id&quot;:&quot;2220391788200892&quot;}</code></pre>
+<p>oh nice..!! this looks exactly what we looking for.. it specifies things like <code>sticker_id</code> probably for which sticker to send.. <code>thread_id</code> probably for which chat to send the sticker to.. um.. the rest seem kind of weird, but my instinct tells me it is what we will be imitating.. lets dive in deeper..</p>
+<h3 id="oh-no-the-2úls_req-before-the-json..">oh no the 2ú/ls_req© before the json..</h3>
+<p>luckily, most of the message is in json which is common format that is human readable so we can sus out the format by reading it..</p>
+<p>but before the json there is 2ú/ls_req© in the ascii output.. which means that there is probably some structured packed binary data format..</p>
+<p>looking at some other similar messages:</p>
+<pre><code>2ú/ls_req½{&quot;request_id&quot;:74,&quot;type&quot;:3,&quot;payload&quot;:&quot;{\&quot;version_id\&quot;:\&quot;4148577245264481\&quot;,\&quot;tasks\&quot;:[{\&quot;label\&quot;:\&quot;46\&quot;,\&quot;payload\&quot;:\&quot;{\\\&quot;thread_id\\\&quot;:100059914091284,\\\&quot;otid\\\&quot;:\\\&quot;6774578056883544177\\\&quot;,\\\&quot;source\\\&quot;:65537,\\\&quot;send_type\\\&quot;:2,\\\&quot;sticker_id\\\&quot;:1926238417415152}\&quot;,\&quot;queue_name\&quot;:\&quot;100059914091284\&quot;,\&quot;task_id\&quot;:79,\&quot;failure_count\&quot;:null},{\&quot;label\&quot;:\&quot;21\&quot;,\&quot;payload\&quot;:\&quot;{\\\&quot;thread_id\\\&quot;:100059914091284,\\\&quot;last_read_watermark_ts\\\&quot;:1615185274334}\&quot;,\&quot;queue_name\&quot;:\&quot;100059914091284\&quot;,\&quot;task_id\&quot;:80,\&quot;failure_count\&quot;:null}],\&quot;epoch_id\&quot;:6774578057169182469,\&quot;data_trace_id\&quot;:null}&quot;,&quot;app_id&quot;:&quot;2220391788200892&quot;}</code></pre>
+<pre><code>2ù/ls_reqÛ{&quot;request_id&quot;:87,&quot;type&quot;:3,&quot;payload&quot;:&quot;{\&quot;version_id\&quot;:\&quot;4148577245264481\&quot;,\&quot;tasks\&quot;:[{\&quot;label\&quot;:\&quot;46\&quot;,\&quot;payload\&quot;:\&quot;{\\\&quot;thread_id\\\&quot;:100059914091284,\\\&quot;otid\\\&quot;:\\\&quot;6774578476218321670\\\&quot;,\\\&quot;source\\\&quot;:65537,\\\&quot;send_type\\\&quot;:2,\\\&quot;sticker_id\\\&quot;:144884805685786}\&quot;,\&quot;queue_name\&quot;:\&quot;100059914091284\&quot;,\&quot;task_id\&quot;:89,\&quot;failure_count\&quot;:null},{\&quot;label\&quot;:\&quot;21\&quot;,\&quot;payload\&quot;:\&quot;{\\\&quot;thread_id\\\&quot;:100059914091284,\\\&quot;last_read_watermark_ts\\\&quot;:1615185374312}\&quot;,\&quot;queue_name\&quot;:\&quot;100059914091284\&quot;,\&quot;task_id\&quot;:90,\&quot;failure_count\&quot;:null}],\&quot;epoch_id\&quot;:6774578476417135953,\&quot;data_trace_id\&quot;:null}&quot;,&quot;app_id&quot;:&quot;2220391788200892&quot;}</code></pre>
+<p>oh great.. it changes.. <code>2ú/ls_req©</code>, <code>2ú/ls_req½</code>, <code>2ù/ls_reqÛ</code>.. that means we have to find out what this format is..</p>
+<h3 id="what-is-the-binary-data-format">what is the binary data format</h3>
+<p>so i poke around and find that facebook messenger uses a protocol called MQTT..</p>
+<p>well the only way to find out what the format means is to read the protocol specification!!</p>
+<p>i will put essential info here but to get full sense, i recommend following along with the <a href="https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html">full spec</a></p>
+ok well it says each 'control packet', which basically just means message, begins with a 'fixed header'.. which follows the following format:
+<table>
+<tr>
+<th>
+bit
+</th>
+<th>
+7
+</th>
+<th>
+6
+</th>
+<th>
+5
+</th>
+<th>
+4
+</th>
+<th>
+3
+</th>
+<th>
+2
+</th>
+<th>
+1
+</th>
+<th>
+0
+</th>
+</tr>
+<tr>
+<th>
+byte 1
+</th>
+<td colspan="4">
+control packet type
+</td>
+<td colspan="4">
+packet-specific flags
+</td>
+</tr>
+<tr>
+<th>
+byte 2
+</th>
+<td colspan="8">
+remaining length
+</td>
+</tr>
+</table>
+<p>ok well.. lets look at our messages.. just the first jumbled ascii garbage like <code>2ú/ls_req©</code> parts..</p>
+<p>here are three different examples to compare what is same..</p>
+<pre><code>32 fa 04 00 07 2f 6c 73 5f 72 65 71 00 a9
+32 fa 04 00 07 2f 6c 73 5f 72 65 71 00 d1
+32 f9 04 00 07 2f 6c 73 5f 72 65 71 00 db</code></pre>
+<h4 id="control-packet-type">'control packet type'</h4>
+<p>ok so first four bits are control packet type.. which is <code>3</code> in ours..</p>
+<p>looking at the spec, <code>3</code> means it is a 'Publish message' packet.. which makes sense because we are sending a message!!</p>
+<h4 id="packet-specific-flags">'packet-specific flags'</h4>
+<p>ok looking good.. now... the second four bits are flags, which mean different things for different packet types.. for our 'Publish message' packet, the four bits of flags have meaning...</p>
+<table>
+<tr>
+<th>
+bit
+</th>
+<th>
+3
+</th>
+<th>
+2
+</th>
+<th>
+1
+</th>
+<th>
+0
+</th>
+</tr>
+<tr>
+<th>
+what is it?
+</th>
+<td>
+DUP
+</td>
+<td colspan="2">
+QoS
+</td>
+<td>
+RETAIN
+</td>
+</tr>
+</table>
+<p>oh um... okay??? oh.. it also notes</p>
+<blockquote>
+<p>DUP = Duplicate delivery of a PUBLISH packet</p>
+<p>QoS = PUBLISH Quality of Service</p>
+<p>RETAIN = PUBLISH retained message flag</p>
+</blockquote>
+<p>which.. doesnt really give much more sense..</p>
+<p>well all of our examples have same flags so maybe not that important? lets move on..</p>
+<h4 id="remaining-length">remaining length</h4>
+<p>ok so the next 8 bits/1 byte is remaining length..it is the remaining length of the message..except that it is encoded in 'variable byte integer'...?? so it can actually be more than one byte..</p>
+<p>basically, you take your number in binary, chunk it up into 7 bits, and add a single bit in front of each chunk signifying whether ur at the last chunk (0: at last chunk; 1: not at last chunk)</p>
+<p>so for one of our examples has 'remaining length' of <code>f9 04</code>, which, in binary, is</p>
+<pre><code>11111001 00000100</code></pre>
+<p>and surrounding each at-last-chunk?-flag with brackets, we can see</p>
+<pre><code>[1]1111001 [0]0000100</code></pre>
+<p>and see that our two 7-bit chunks are <code>1111001</code> and <code>0000100</code>.. it turns out they are stored in little-endian which means the full number will be the reverse order, so binary <code>00001001111001</code>.. which is decimal <code>633</code>.. which makes sense, because our messages were just a bit bigger than that size!!</p>
+<h4 id="whats-next">whats next</h4>
+<p>ok whats next on the spec... oh ok a 'variable header'..which is.. variable!!</p>
+<p>uh.. i got kinda confused when reading the spec on this.. there were also different versions of the spec, and maybe facebook was using a diff one?? idk.. but basically i just concluded that the rest of the mystery were these bytes</p>
+<pre><code>ex 1. 00 07 2f 6c 73 5f 72 65 71 00 a9
+ex 2. 00 07 2f 6c 73 5f 72 65 71 00 d1
+ex 3. 00 07 2f 6c 73 5f 72 65 71 00 db</code></pre>
+<p>and the only thing changing is the last byte.. which by vaguely skimming spec i assumed was something like some id that should change sometimes? im not sure.. when testing ill just keep it the same and see if it works..</p>
+<h4 id="and-lastly-the-payload">and lastly the 'payload'</h4>
+<p>and the rest of the message is 'payload', the data we want to send.. in our case, it is utf? ascii? encoded json.. okcool..</p>
+<p>ok now we are done reading spec that tells us how to format binary data.. now need to know how to format our json so we can change the json to repeatedly send different stickers programmatically..</p>
+<p>oh wait but first.. how do we even something down a WebSocket?? how do we get the facebook messenger WebSocket in the first place???</p>
+<h3 id="how-to-gain-access-to-facebook-messengers-websocket">how to gain access to facebook messengers WebSocket</h3>
+<p>well how do we send stuff down the websocket in the first place bro..</p>
+<p>well we can run javascript on a site with the chrome dev javascript console.. and WebSocket is part of javascript and if we have a websocket like <code>my_websocket</code> we can literally just do <code>my_websocket.send(my_data)</code>.. but our problem is</p>
+<p><em>where is the WebSocket???????</em></p>
+<p><em>How do we get it?????</em></p>
+<p>our only trace of where the websocket is is this html request that initialises the websocket connection.. and if you know how this works you probably already have superpower to send sticker with just your brain..</p>
+<div class="figure">
+<img src="crazy-websocket-callstack.png" alt="call stack" />
+<p class="caption">call stack</p>
+</div>
+<p>so i turned to this idea: inject a script into the site before loading which overrides default WebSocket constructor, replacing it with my own constructor that also adds the newly created WebSocket to my secret safekeeping so that we can access it later..</p>
+<h3 id="monkey-patching">monkey-patching</h3>
+<p>this strategy is i think called 'monkey patching' because you are like silly monkey duct taping something to something else patching it up with duct tape creating weird silly mess..</p>
+<p>but sometimes like this, the thing you are taping your patch to is such a mess (facebook messenger is mess) that it is the cleanest way to do it..</p>
+<p>this is my monkey patch::</p>
+<div class="sourceCode"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span class="kw">const</span> my_sockets <span class="op">=</span> []
+<span class="kw">const</span> super_WebSocket <span class="op">=</span> <span class="va">window</span>.<span class="at">WebSocket</span>
+
+<span class="va">window</span>.<span class="at">WebSocket</span> <span class="op">=</span> <span class="kw">function</span>() <span class="op">{</span>
+    <span class="kw">const</span> sock <span class="op">=</span> <span class="kw">new</span> <span class="at">super_WebSocket</span>(...<span class="at">arguments</span>)
+    <span class="va">my_sockets</span>.<span class="at">push</span>(sock)
+    <span class="cf">return</span> sock
+<span class="op">}</span>
+
+<span class="va">window</span>.<span class="va">WebSocket</span>.<span class="at">prototype</span> <span class="op">=</span> <span class="va">super_WebSocket</span>.<span class="at">prototype</span></code></pre></div>
+<p>i used chrome extension system to slap it into the page before it loads..</p>
+<p>yep!! thats it.. and now we can just access the <code>my_sockets</code> variable from chrome dev javascript console..</p>
+<div class="figure">
+<img src="epic-patch.png" alt="epic-patch" />
+<p class="caption">epic-patch</p>
+</div>
+<video controls src="aces-granted.mp4">
+</video>
+<p>to send binary data we just need to pass a <code>Uint8Array</code> that contains our bytes into the <code>my_sockets[0].send</code>..</p>
+<h3 id="websocket-works-and-we-know-how-to-send-our-json-in-binary-format-now-it-is-time-to-understand-json">websocket works and we know how to send our json in binary format NOw it is time to understand json</h3>
+<p>ok its great now we have websocket.. but now we need to know what data in json to send to it..</p>
+<p>i tried to just send the same json over and over to send the same sticker.. but it didnt work!! so we need to dive into json to see what we have to change..</p>
+<p>heres the json..</p>
+<pre><code>{&quot;request_id&quot;:87,&quot;type&quot;:3,&quot;payload&quot;:&quot;{\&quot;version_id\&quot;:\&quot;4148577245264481\&quot;,\&quot;tasks\&quot;:[{\&quot;label\&quot;:\&quot;46\&quot;,\&quot;payload\&quot;:\&quot;{\\\&quot;thread_id\\\&quot;:100059914091284,\\\&quot;otid\\\&quot;:\\\&quot;6774578476218321670\\\&quot;,\\\&quot;source\\\&quot;:65537,\\\&quot;send_type\\\&quot;:2,\\\&quot;sticker_id\\\&quot;:144884805685786}\&quot;,\&quot;queue_name\&quot;:\&quot;100059914091284\&quot;,\&quot;task_id\&quot;:89,\&quot;failure_count\&quot;:null},{\&quot;label\&quot;:\&quot;21\&quot;,\&quot;payload\&quot;:\&quot;{\\\&quot;thread_id\\\&quot;:100059914091284,\\\&quot;last_read_watermark_ts\\\&quot;:1615185374312}\&quot;,\&quot;queue_name\&quot;:\&quot;100059914091284\&quot;,\&quot;task_id\&quot;:90,\&quot;failure_count\&quot;:null}],\&quot;epoch_id\&quot;:6774578476417135953,\&quot;data_trace_id\&quot;:null}&quot;,&quot;app_id&quot;:&quot;2220391788200892&quot;}</code></pre>
+<p>oh its hard to look at lets 'pretty print' it..</p>
+<pre><code>{
+    &quot;request_id&quot;: 87,
+    &quot;type&quot;: 3,
+    &quot;payload&quot;: &quot;{\&quot;version_id\&quot;:\&quot;4148577245264481\&quot;,\&quot;tasks\&quot;:[{\&quot;label\&quot;:\&quot;46\&quot;,\&quot;payload\&quot;:\&quot;{\\\&quot;thread_id\\\&quot;:100059914091284,\\\&quot;otid\\\&quot;:\\\&quot;6774578476218321670\\\&quot;,\\\&quot;source\\\&quot;:65537,\\\&quot;send_type\\\&quot;:2,\\\&quot;sticker_id\\\&quot;:144884805685786}\&quot;,\&quot;queue_name\&quot;:\&quot;100059914091284\&quot;,\&quot;task_id\&quot;:89,\&quot;failure_count\&quot;:null},{\&quot;label\&quot;:\&quot;21\&quot;,\&quot;payload\&quot;:\&quot;{\\\&quot;thread_id\\\&quot;:100059914091284,\\\&quot;last_read_watermark_ts\\\&quot;:1615185374312}\&quot;,\&quot;queue_name\&quot;:\&quot;100059914091284\&quot;,\&quot;task_id\&quot;:90,\&quot;failure_count\&quot;:null}],\&quot;epoch_id\&quot;:6774578476417135953,\&quot;data_trace_id\&quot;:null}&quot;,
+    &quot;app_id&quot;: &quot;2220391788200892&quot;
+}</code></pre>
+<p>ok well its json that contains a string that contains even more json.. kind of disguisting to me..</p>
+<h3 id="a-while-later">a while later</h3>
+<p>figuring out the format of something like this json is often just changing random stuff and poking around until you find something that works..</p>
+<p>that is what i did!! i dont really want to write about it because it was kind of boring</p>
+<p>what i found that the only things you really need to change to make facebook messenger process ur message properly are: <code>epoch_id</code> and <code>otid</code>. both of these have similar-looking example values like <code>6774578476417135953</code> and <code>&quot;6774578476218321670&quot;</code> (<code>otid</code> is a string for some reason).</p>
+<p>i have no clue really how these values are generated, but based on past experience, i guessed they are 1. derived from unix epoch somehow 2. you just make them up yourself?</p>
+<p>so idk how ur supposed to generate them, but for my solution i took an example <code>epoch_id</code> e.g. <code>6774578476417135953</code>... then i did <code>6774578476417135953 / Date.now()</code> to get some number like <code>4194141</code>.. then just multiplied that by calls to <code>Date.now()</code> to generate new <code>epoch_id</code>s that look similar to example.</p>
+<p>so now it is possible to generate json that facebook messenger will receive and process accordingly!!</p>
+<h3 id="putting-it-all-together">putting it all together</h3>
+<p>so now it is all complete.. to send a sticker we 1. generate json 2. put json into binary format 3. send binary format down websocket 4. success!!!!</p>
+<h2 id="conclusion">conclusion</h2>
+<p>in conclusion, we saw that it is possible to get access to socket that facebook uses to send messages. and then we can forge our own messages by imitating the same format. and by doing this we can do stuff like send stickers.</p>
+<h2 id="my-code">my code</h2>
+<p><a href="./writeup-demo.js">here is my code</a> it is script to be injected before <code>https://www.facebook.com/messages/*</code> loads.</p>
+<p>there are just a few extra things it includes that i did not discuss</p>
+<ol style="list-style-type: decimal">
+<li>sending text message as well as sticker
+<ul>
+<li>the two things ended up being very similar i discovered shortly after, so i just made a generalisation when cleaning up code</li>
+</ul></li>
+<li>keeping track of current thread
+<ul>
+<li>i added quick hack that adds an eventlistener to every link that changes chat which stores the new chat's <code>thread_id</code> in a variable to be used..</li>
+</ul></li>
+</ol>
+<p>here some example code you could probably run in ur console if using the script</p>
+<div class="sourceCode"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span class="co">// sends a disco sticker to current thread</span>
+my_sockets[<span class="dv">0</span>].<span class="at">send</span>(<span class="at">b_sticker</span>(curr_thread_id<span class="op">,</span> <span class="dv">2379544618736942</span>))
+
+<span class="co">// sends &#39;hello world&#39; to current thread</span>
+my_sockets[<span class="dv">0</span>].<span class="at">send</span>(<span class="at">b_text</span>(curr_thread_id<span class="op">,</span> <span class="st">&#39;hello world&#39;</span>))</code></pre></div>
+<h2 id="further">further</h2>
+<p>oh cool now we know general process of finding out what goes on in websocket to send info. so we could send potentially anything else you can manually send!!!</p>
+<p>we could also probably listen to the websocket and like respond to messages or something cool!</p>
+<p>the possibilities are endless!!</p>
+</body>
+</html>
