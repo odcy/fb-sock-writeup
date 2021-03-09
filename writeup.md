@@ -35,7 +35,7 @@ so maybe i could select the sticker button and click it..
 
 well it turns out that this is not possible because you have to click the sticker menu FIRST, then click a sticker button within the menu.
 
-and the menu isn't just hidden or something, it is actually removed from dom when it is not active
+and the menu isn't just hidden or something, it is actually removed from dom when it is not active:
 
 <video controls src=sticker-menu.mp4></video>
 
@@ -66,7 +66,7 @@ as you can see, they all say 'binary message'. this means that it is just any ar
 
 the chrome tool decides to display the 'binary message' in base64 format, which imo not very convenient.. so i constantly used base64 to either ascii or hexadecimal convertor for viewing..
 
-well we want to see what facebook messenger is tossing down the hole that corresponds to sending a sticker.. so i lets look at some of what its sending..
+well we want to see what facebook messenger is tossing down the hole that corresponds to sending a sticker.. so lets look at some of what its sending..
 
 here is a 2B (2-byte) binary data..
 ```

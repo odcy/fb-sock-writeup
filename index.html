@@ -69,7 +69,7 @@ img, video { width: 100% }
 <p>in javascript, DOM elements have <code>.click()</code> method you can call and it clicks them.</p>
 <p>so maybe i could select the sticker button and click it..</p>
 <p>well it turns out that this is not possible because you have to click the sticker menu FIRST, then click a sticker button within the menu.</p>
-<p>and the menu isn't just hidden or something, it is actually removed from dom when it is not active</p>
+<p>and the menu isn't just hidden or something, it is actually removed from dom when it is not active:</p>
 <video controls src="sticker-menu.mp4">
 </video>
 <p>so to programmatically click sticker button, i would have to somehow programatically 1. click sticker menu 2. somehow know when sticker menu opened 3. navigate horrible menu selection to correct page 4. finally click the sticker button</p>
@@ -85,7 +85,7 @@ img, video { width: 100% }
 <p>well we need to understand what is sending in order to also send sticker..</p>
 <p>as you can see, they all say 'binary message'. this means that it is just any arbitrary data being sent, not particularly ascii/utf-8 encoded text!!</p>
 <p>the chrome tool decides to display the 'binary message' in base64 format, which imo not very convenient.. so i constantly used base64 to either ascii or hexadecimal convertor for viewing..</p>
-<p>well we want to see what facebook messenger is tossing down the hole that corresponds to sending a sticker.. so i lets look at some of what its sending..</p>
+<p>well we want to see what facebook messenger is tossing down the hole that corresponds to sending a sticker.. so lets look at some of what its sending..</p>
 <p>here is a 2B (2-byte) binary data..</p>
 <pre><code>base64: wAA=
 hex: c0 00
